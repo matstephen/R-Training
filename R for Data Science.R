@@ -244,7 +244,7 @@ not_cancelled %>%
     summarise(dep_delay_mean = mean(dep_delay),
               arr_delay_mean = mean(arr_delay))
 
-# create delays dataset from not_cancelled and calculate mean arrival delay by tailnum
+# create delays dataset from not_cancelled and calculate mean arrival delay by tailnum (plane)
 delays <- not_cancelled %>%
     group_by(tailnum) %>%
     summarise(
@@ -253,148 +253,189 @@ delays <- not_cancelled %>%
 arrange(delays, desc(delay))
 delays
 
-
+# plot histogram of mean arrival delay by plane
 ggplot(data=delays, mapping=aes(x=delay)) +
     geom_freqpoly(binwidth = 10)
 
-# delays <- not_cancelled %>%
-#     group_by(tailnum) %>%
-#     summarise(
-#         delay = mean(arr_delay, na.rm = TRUE),
-#             n = n()
-#     )
+# create delays dataset again but include count
+delays <- not_cancelled %>%
+    group_by(tailnum) %>%
+    summarise(
+        delay = mean(arr_delay, na.rm = TRUE),
+            n = n()
+    )
+delays
 
-# delays
+# scatterplot of of number of flights (per plane) vs average delay
+ggplot(data=delays, mapping = aes(x = n, y = delay)) +
+     geom_point(alpha = 1/10)
 
-# ggplot(data=delays, mapping = aes(x = n, y = delay)) + 
-#     geom_point(alpha = 1/10)
-
-
-# delays %>%
-#     filter(n > 25) %>%
-#     ggplot(mapping=aes(x = n, y= delay)) +
-#         geom_point(alpha = 1/10)
-
-
-# library(Lahman)
-
-# batting <- as_tibble(Lahman::Batting)
-
-# batting
-
-# batters <- batting %>%
-#     group_by (playerID) %>%
-#     summarise(
-#         ba = sum(H, na.rm = TRUE) / sum(AB, na.rm = "TRUE"),
-#         ab = sum(AB, na.rm = TRUE)
-#     )
+# repeat scatterplot but exclude planes that flew less than 25 flights
+delays %>%
+    filter(n > 25) %>%
+    ggplot(mapping=aes(x = n, y= delay)) +
+        geom_point(alpha = 1/10)
 
 
-# pipe example
-# given these values of x, compute the log of x, return suitably lagged and iterated differences,
+
+# load baseball library
+library(Lahman)
+
+batting <- as_tibble(Lahman::Batting)
+
+batting
+
+# create batters dataset and calculate mean batting average (ba = number of hits (h) / at bat (ab))
+batters <- batting %>%
+    group_by (playerID) %>%
+    summarise(
+        ba = sum(H, na.rm = TRUE) / sum(AB, na.rm = "TRUE"),
+        ab = sum(AB, na.rm = TRUE)
+    )
+batters
+
+
+
+# pipe example - given these values of x, compute the log of x, return suitably lagged and iterated differences,
 # then compute the exponential function and round the result
 
-# x <- c(0.109, 0.359, 0.63, 0.996, 0.515, 0.142, 0.017, 0.829, 0.907)
+x <- c(0.109, 0.359, 0.63, 0.996, 0.515, 0.142, 0.017, 0.829, 0.907)
 
-# x
-# log(x)
-# diff(log(x))
-# exp(diff(log(x)))
-# round(exp(diff(log(x))), 1)
+x
+log(x)
+diff(log(x))
+exp(diff(log(x)))
+round(exp(diff(log(x))), 1)
 
-# # now using pipe
-# x %>%
-#     log() %>%
-#     diff() %>%
-#     exp() %>%
-#     round(1)
-
-# batters %>% 
-#     filter(ab > 100) %>%
-#     ggplot(mapping = aes(x = ab, y = ba)) + 
-#     geom_point() +
-#     geom_smooth(se = FALSE)
-
-#compute average positive delay on not_cancelled dataset
-# not_cancelled %>%
-#     group_by(year, month) %>%
-#     summarise(
-#         avg_delay1 = mean(arr_delay),
-#         avg_delay2 = mean(arr_delay[arr_delay > 0]))
-
-#compute mean and standard deviation of distance for each destination
-# not_cancelled %>%
-#     group_by (dest) %>%
-#     summarise(mean = mean(distance),
-#               sd = sd(distance)) %>%
-# arrange(desc(sd))
-
-#which destinations have the most carriers?
-# not_cancelled %>%
-#     group_by(dest) %>%
-#     summarise(carriers = n_distinct(carrier)) %>%
-#     arrange(desc(carriers))
+# now using pipe (provides same answer)
+x %>%
+    log() %>%
+    diff() %>%
+    exp() %>%
+    round(1)
 
 
+# take batters dataset and filter on batter with at bat (ab) > 100 then plot ab by ba (batting average) using
+# point and smooth
+batters %>%
+    filter(ab > 100) %>%
+    ggplot(mapping = aes(x = ab, y = ba)) +
+    geom_point() +
+    geom_smooth(se = FALSE)
 
-# not_cancelled %>%
-#     group_by (carrier, flight) %>%
-#     summarise (count = n(),
-#                avg_arr_delay = mean(arr_delay),
-#                median_arr_delay = median(arr_delay)) %>%
-#     filter(count > 20) %>%
-#     arrange(median_arr_delay)
+# compute average positive delay by month on not_cancelled dataset (utilises subsetting)
+not_cancelled %>%
+    group_by(year, month) %>%
+    summarise(
+        avg_delay1 = mean(arr_delay),
+        avg_delay2 = mean(arr_delay[arr_delay > 0]))
 
 
-#count number of cancelled flights per day
-# flights %>%
-#     group_by (year, month, day) %>%
-#     summarise (count = n(),
-#               cancelled = sum(is.na(dep_delay) | is.na(arr_delay)),
-#               cancelled_pct = cancelled / count) %>%
-#     arrange(desc(cancelled_pct))
+# compute mean and standard deviation of distance for each destination
+not_cancelled %>%
+    group_by (dest) %>%
+    summarise(mean = mean(distance),
+              sd = sd(distance)) %>%
+arrange(desc(mean))
 
-# # find the worst members of each group - not sure what this does
-# flights %>%
-#     select (year, month, day, arr_delay) %>%
-#     group_by (year, month, day) %>%
-#     filter(rank(desc(arr_delay)) < 10)
+# which destinations have the most carriers?
+not_cancelled %>%
+    group_by(dest) %>%
+    summarise(carriers = n_distinct(carrier)) %>%
+    arrange(desc(carriers))
 
-# flights %>%
-#     group_by (tailnum) %>%
-#     summarise(count = n(),
-#               mean_arr = mean(arr_delay),
-#               mean_dep = mean(dep_delay)) %>%
-#     arrange(desc(mean_arr))
+# provide counts and average/median arrival delay for each carrier and flight
+not_cancelled %>%
+    group_by (carrier, flight) %>%
+    summarise (count = n(),
+               avg_arr_delay = mean(arr_delay),
+               median_arr_delay = median(arr_delay)) %>%
+    filter(count > 20) %>%
+    arrange(desc(median_arr_delay))
 
-#visualising distributions
-# ggplot(data = diamonds) +
-# geom_bar (mapping = aes (x = cut))
+# identify planes with most flights
+flights %>%
+  count(tailnum) %>%
+  arrange(desc(n))
 
-# diamonds %>%
-#     count(cut)
+# count number of cancelled flights per day
+flights %>%
+    group_by (year, month, day) %>%
+    summarise (count = n(),
+              cancelled = sum(is.na(dep_delay) | is.na(arr_delay)),
+              cancelled_pct = cancelled / count) %>%
+    arrange(desc(cancelled_pct))
 
-# ggplot(data = diamonds) +
-#   geom_histogram(mapping = aes(x = carat), binwidth = 0.5)
 
-# diamonds %>% 
-#   count(cut_width(carat, 0.5))
+# find the worst members of each group - not sure what this does
+flights %>%
+    select (year, month, day, arr_delay) %>%
+    group_by (year, month, day) %>%
+    filter(rank(desc(arr_delay)) < 10)
 
-# ggplot(data = diamonds) + 
-#     geom_freqpoly ( mapping = aes (x = carat, colour = cut), binwidth = 0.1)
+# provide count and mean arrival/departure time by plane (tailnum)
+flights %>%
+    group_by (tailnum) %>%
+    summarise(count = n(),
+              mean_arr = mean(arr_delay),
+              mean_dep = mean(dep_delay)) %>%
+    arrange(desc(mean_arr))
 
-# ggplot(diamonds) + 
-#   geom_histogram(mapping = aes(x = y), binwidth = 0.5) +
-#   coord_cartesian(ylim = c(0, 50))
 
+
+#7. EXPLORATORY DATA ANALYSIS
+
+# visualising distributions - bar graph
+ggplot(data = diamonds) +
+geom_bar (mapping = aes (x = cut))
+
+# freq table of number of diamonds by cut
+diamonds %>%
+    count(cut)
+
+# histogram of no. diamonds by carat
+ggplot(data = diamonds) +
+  geom_histogram(mapping = aes(x = carat), binwidth = 0.5)
+
+# freq table of number of diamonds by carat groupings - similar to applying a format in SAS
+diamonds %>% 
+  count(cut_width(carat, 0.5))
+
+# count of diamonds by carat and cut (line graph)
+ggplot(data = diamonds) + 
+   geom_freqpoly ( mapping = aes (x = carat, colour = cut), binwidth = 0.1)
+
+# zoom into histogram of y (cut dimension on a diamond)
+ggplot(diamonds) + 
+ geom_histogram(mapping = aes(x = y), binwidth = 0.5) +
+ coord_cartesian(ylim = c(0, 50))
+
+# histogram of x cut dimension
 ggplot(data = diamonds) +
   geom_histogram(mapping = aes(x = x),binwidth = 0.5)
 
+# pull out unusual values of y cut dimension
+diamonds %>%
+    count(cut_width(y, 1))
 
+# pull out unusual values of y cut dimension
+unusual <- diamonds %>%
+  filter(y < 3 | y > 20) %>%
+  select(price, x, y, z) %>%
+  arrange(y)
+unusual
 
+# check distribution of price
+ggplot(data=diamonds) +
+    geom_histogram(mapping = aes (x=price), binwidth = 1000)
 
+# drop all unusual values
+diamonds2 <- diamonds %>%
+    filter(between(y, 3, 20))
 
-
+# replace all unusual values (outliers) with missing
+diamonds2 <- diamonds %>%
+    mutate(y = ifelse(y < 3 | y > 20, NA, y))
 
 
 
